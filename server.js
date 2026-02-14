@@ -26,42 +26,34 @@ app.use(helmet({
 }));
 app.use("/api", apiLimiter);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow server-to-server & Postman
-      if (!origin) return callback(null, true);
+const allowedOrigins = [
+  "https://www.pasameme.in",
+  "https://pasameme.in",
+  "http://localhost:5173",
+  "https://meme-ayodhya-1.onrender.com",
+  "https://meme-frontend-piou.onrender.com",
+  "https://meme-backend-whv9.onrender.com",
+];
 
-      const allowedOrigins = [
-        "https://www.pasameme.in",
-        "https://pasameme.in",
-        "http://localhost:5173",
-      ];
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-
-// 🔥 THIS IS THE KEY FIX FOR RENDER
-app.options("*", cors({
-  origin: [
-    "https://www.pasameme.in",
-    "https://pasameme.in",
-    "http://localhost:5173",
-    "https://meme-ayodhya-1.onrender.com",
-    "https://meme-frontend-piou.onrender.com",
-  ],
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true,
-}));
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+
+
+app.options("*", cors(corsOptions));
 
 
 // ===================== MIDDLEWARE =====================
