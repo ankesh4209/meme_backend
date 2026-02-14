@@ -57,7 +57,8 @@ app.options("*", cors({
     "https://www.pasameme.in",
     "https://pasameme.in",
     "http://localhost:5173",
-    "https://meme-ayodhya-1.onrender.com"
+    "https://meme-ayodhya-1.onrender.com",
+    "https://meme-frontend-piou.onrender.com",
   ],
   credentials: true,
 }));
