@@ -88,11 +88,6 @@ const login = async (req, res) => {
     }
 
     const token = generateToken(user._id, user.email);
-    console.log("Token:", token);
-    console.log("User:", user);
-    console.log("Email:", email);
-    console.log("Password:", password);
-    console.log("IsMatch:", isMatch);
 
     res.json({
       success: true,
