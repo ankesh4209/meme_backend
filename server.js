@@ -10,6 +10,7 @@ dotenv.config();
 const app = express();
 app.set("trust proxy", 1);
 
+// ================= RATE LIMIT =================
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
@@ -21,48 +22,53 @@ const apiLimiter = rateLimit({
   },
 });
 
+// ================= SECURITY =================
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
   }),
 );
+
 app.use("/api", apiLimiter);
 
-const allowedOrigins = [
-  "https://www.pasameme.in",
-  "https://pasameme.in",
-  "http://localhost:5173",
-  "https://meme-ayodhya-1.onrender.com",
-  "https://meme-frontend-piou.onrender.com",
-  "https://meme-backend-whv9.onrender.com",
-  "https://pasameme.in",
-  "https://www.pasameme.in",
-];
+// ================= CORS (FIXED) =================
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow Postman, mobile apps, SSR
+      if (!origin) return callback(null, true);
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
+      const allowed =
+        origin.includes("localhost") ||
+        origin.includes("onrender.com") ||
+        origin.includes("pasameme.in");
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+      if (allowed) return callback(null, true);
 
-    return callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
+      console.log("❌ Blocked by CORS:", origin);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
-app.use(cors(corsOptions));
+// Preflight fix
+app.options("*", cors());
 
-app.options("*", cors(corsOptions));
-
-// ===================== MIDDLEWARE =====================
+// ================= BODY PARSER =================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ===================== DB & ROUTES =====================
+// ================= DEBUG (remove later) =================
+app.use((req, res, next) => {
+  console.log("🌍 Origin:", req.headers.origin);
+  console.log("🔐 Auth Header:", req.headers.authorization);
+  next();
+});
+
+// ================= DB & ROUTES =================
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const headerRoutes = require("./routes/headerRoutes");
@@ -70,20 +76,21 @@ const tradeRoutes = require("./routes/tradeRoutes");
 const priceRoutes = require("./routes/priceRoutes");
 const priceWS = require("./websocket/priceWebSocket");
 
-// connectDB(); // Called in startServer
-
+// Health check
 app.get("/", (req, res) => {
-  res.status(200).send("PasaMeme API Live");
+  res.status(200).send("🚀 PasaMeme API Live");
 });
 
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/header", headerRoutes);
 app.use("/api/trade", tradeRoutes);
 app.use("/api/prices", priceRoutes);
 
-// ===================== SERVER =====================
+// ================= SERVER =================
 const server = http.createServer(app);
 
+// WebSocket init
 if (priceWS?.init) {
   priceWS.init(server);
 }
@@ -91,8 +98,12 @@ if (priceWS?.init) {
 const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
-  await connectDB();
-  server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  try {
+    await connectDB();
+    server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  } catch (err) {
+    console.error("❌ Server start failed:", err);
+  }
 };
 
 startServer();
