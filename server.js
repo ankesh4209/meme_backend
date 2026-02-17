@@ -21,9 +21,11 @@ const apiLimiter = rateLimit({
   },
 });
 
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 app.use("/api", apiLimiter);
 
 const allowedOrigins = [
@@ -33,6 +35,8 @@ const allowedOrigins = [
   "https://meme-ayodhya-1.onrender.com",
   "https://meme-frontend-piou.onrender.com",
   "https://meme-backend-whv9.onrender.com",
+  "https://pasameme.in",
+  "https://www.pasameme.in",
 ];
 
 const corsOptions = {
@@ -52,9 +56,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-
 app.options("*", cors(corsOptions));
-
 
 // ===================== MIDDLEWARE =====================
 app.use(express.json());
@@ -90,9 +92,7 @@ const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
   await connectDB();
-  server.listen(PORT, () =>
-    console.log(`🚀 Server running on port ${PORT}`)
-  );
+  server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 };
 
 startServer();
