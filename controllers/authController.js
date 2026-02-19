@@ -31,7 +31,7 @@ const ensureWalletDocument = async (userId, userBalance = 1000) => {
     {
       $setOnInsert: {
         usdBalance: safeBalance,
-        realUsdBalance: safeBalance,
+        realUsdBalance: 0,
         demoUsdBalance: 1000,
         tokenBalance: 0,
       },
@@ -44,7 +44,7 @@ const ensureWalletDocument = async (userId, userBalance = 1000) => {
 
   let requiresSave = false;
   if (wallet.realUsdBalance === undefined || wallet.realUsdBalance === null) {
-    wallet.realUsdBalance = Number(wallet.usdBalance ?? safeBalance);
+    wallet.realUsdBalance = 0;
     requiresSave = true;
   }
   if (wallet.demoUsdBalance === undefined || wallet.demoUsdBalance === null) {
@@ -91,7 +91,7 @@ const register = async (req, res) => {
       username,
       email: email.toLowerCase(),
       password,
-      balance: 1000,
+      balance: 0,
     });
 
     await user.save();
