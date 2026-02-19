@@ -73,7 +73,7 @@ const validateLogin = (req, res, next) => {
 
 // Balance update validation
 const validateBalance = (req, res, next) => {
-  const { amount, accountType } = req.body;
+  const { amount } = req.body;
 
   if (amount === undefined || amount === null) {
     return res.status(400).json({
@@ -93,38 +93,19 @@ const validateBalance = (req, res, next) => {
     });
   }
 
-  if (accountType && !["real", "demo"].includes(accountType)) {
-    return res.status(400).json({
-      error: "Account type must be either real or demo",
-    });
-  }
-
   next();
 };
 
 const validateCardDeposit = (req, res, next) => {
-  const { amount, accountType, gateway, cardHolder, cardNumber, expiry, cvv } =
-    req.body;
+  const { amount, gateway, cardHolder, cardNumber, expiry, cvv } = req.body;
 
   if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
     return res.status(400).json({ error: "Amount must be greater than 0" });
   }
 
-  if (accountType && !["real", "demo"].includes(accountType)) {
+  if (!gateway || !["stripe", "razorpay"].includes(gateway)) {
     return res.status(400).json({
-      error: "Account type must be either real or demo",
-    });
-  }
-
-  if ((accountType || "real") !== "real") {
-    return res.status(400).json({
-      error: "Card deposits are allowed only for real account",
-    });
-  }
-
-  if (!gateway || !["mock", "stripe", "razorpay"].includes(gateway)) {
-    return res.status(400).json({
-      error: "Gateway must be one of: mock, stripe, razorpay",
+      error: "Gateway must be one of: stripe, razorpay",
     });
   }
 

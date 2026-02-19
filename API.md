@@ -12,8 +12,8 @@ Body:
 
 ```json
 {
-  "username": "demo",
-  "email": "demo@example.com",
+  "username": "trader_user",
+  "email": "trader@example.com",
   "password": "StrongPass123"
 }
 ```
@@ -26,7 +26,7 @@ Body:
 
 ```json
 {
-  "email": "demo@example.com",
+  "email": "trader@example.com",
   "password": "StrongPass123"
 }
 ```

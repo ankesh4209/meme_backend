@@ -11,14 +11,13 @@ const getSafeUserId = (req) => {
   return req.user._id || req.user.id;
 };
 
-const ensureWalletState = async (userId, userBalance = 1000) => {
+const ensureWalletState = async (userId, userBalance) => {
   const wallet = await Wallet.findOneAndUpdate(
     { userId },
     {
       $setOnInsert: {
         usdBalance: userBalance,
         realUsdBalance: userBalance,
-        demoUsdBalance: 1000,
         tokenBalance: 0,
       },
       $set: {
@@ -31,10 +30,6 @@ const ensureWalletState = async (userId, userBalance = 1000) => {
   let requiresSave = false;
   if (wallet.realUsdBalance === undefined || wallet.realUsdBalance === null) {
     wallet.realUsdBalance = Number(wallet.usdBalance ?? userBalance);
-    requiresSave = true;
-  }
-  if (wallet.demoUsdBalance === undefined || wallet.demoUsdBalance === null) {
-    wallet.demoUsdBalance = 1000;
     requiresSave = true;
   }
   if (wallet.usdBalance === undefined || wallet.usdBalance === null) {
@@ -72,13 +67,12 @@ exports.getHeaderData = async (req, res) => {
 
     const wallet = await ensureWalletState(
       userId,
-      Number(user.balance || 1000),
+      Number(user.balance),
     );
 
     const walletData = {
       usdBalance: parseFloat(wallet?.realUsdBalance ?? user?.balance ?? 0),
       realUsdBalance: parseFloat(wallet?.realUsdBalance ?? user?.balance ?? 0),
-      demoUsdBalance: parseFloat(wallet?.demoUsdBalance ?? 1000),
       tokenBalance: parseFloat(wallet?.tokenBalance || 0),
     };
 
@@ -131,7 +125,7 @@ exports.getWallet = async (req, res) => {
 
     const wallet = await ensureWalletState(
       userId,
-      Number(user.balance || 1000),
+      Number(user.balance),
     );
 
     res.json({
@@ -141,7 +135,6 @@ exports.getWallet = async (req, res) => {
         realUsdBalance: parseFloat(
           wallet?.realUsdBalance ?? user?.balance ?? 0,
         ),
-        demoUsdBalance: parseFloat(wallet?.demoUsdBalance ?? 1000),
         tokenBalance: parseFloat(wallet?.tokenBalance || 0),
         lastUpdated: wallet?.updatedAt || new Date(),
       },

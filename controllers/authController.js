@@ -8,9 +8,6 @@ const generateToken = (userId, email) => {
   });
 };
 
-const getNormalizedAccountType = (accountType) =>
-  accountType === "demo" ? "demo" : "real";
-
 const isGatewayConfigured = (gateway) => {
   if (gateway === "stripe") {
     return Boolean(process.env.STRIPE_SECRET_KEY);
@@ -23,8 +20,8 @@ const isGatewayConfigured = (gateway) => {
   return true;
 };
 
-const ensureWalletDocument = async (userId, userBalance = 1000) => {
-  const safeBalance = Number.isFinite(userBalance) ? userBalance : 1000;
+const ensureWalletDocument = async (userId, userBalance) => {
+  const safeBalance = Number.isFinite(userBalance) ? userBalance : 0;
 
   const wallet = await Wallet.findOneAndUpdate(
     { userId },
@@ -32,7 +29,6 @@ const ensureWalletDocument = async (userId, userBalance = 1000) => {
       $setOnInsert: {
         usdBalance: safeBalance,
         realUsdBalance: 0,
-        demoUsdBalance: 1000,
         tokenBalance: 0,
       },
       $set: {
@@ -45,10 +41,6 @@ const ensureWalletDocument = async (userId, userBalance = 1000) => {
   let requiresSave = false;
   if (wallet.realUsdBalance === undefined || wallet.realUsdBalance === null) {
     wallet.realUsdBalance = 0;
-    requiresSave = true;
-  }
-  if (wallet.demoUsdBalance === undefined || wallet.demoUsdBalance === null) {
-    wallet.demoUsdBalance = 1000;
     requiresSave = true;
   }
   if (wallet.usdBalance === undefined || wallet.usdBalance === null) {
@@ -180,7 +172,7 @@ const getProfile = async (req, res) => {
 // Update Balance Controller
 const updateBalance = async (req, res) => {
   try {
-    const { amount, accountType } = req.body;
+    const { amount } = req.body;
 
     if (typeof amount !== "number") {
       return res.status(400).json({
@@ -195,9 +187,7 @@ const updateBalance = async (req, res) => {
     }
 
     const wallet = await ensureWalletDocument(user._id, user.balance);
-    const normalizedAccountType = getNormalizedAccountType(accountType);
-    const balanceField =
-      normalizedAccountType === "demo" ? "demoUsdBalance" : "realUsdBalance";
+    const balanceField = "realUsdBalance";
 
     const currentBalance = Number(wallet[balanceField] || 0);
     if (currentBalance + amount < 0) {
@@ -211,10 +201,8 @@ const updateBalance = async (req, res) => {
     wallet.usdBalance = wallet.realUsdBalance;
     wallet.lastUpdated = new Date();
 
-    if (normalizedAccountType === "real") {
-      user.balance = wallet.realUsdBalance;
-      await user.save();
-    }
+    user.balance = wallet.realUsdBalance;
+    await user.save();
 
     await wallet.save();
 
@@ -224,10 +212,8 @@ const updateBalance = async (req, res) => {
       wallet: {
         usdBalance: Number(wallet.realUsdBalance || 0),
         realUsdBalance: Number(wallet.realUsdBalance || 0),
-        demoUsdBalance: Number(wallet.demoUsdBalance || 0),
         tokenBalance: Number(wallet.tokenBalance || 0),
       },
-      accountType: normalizedAccountType,
       user, // update user in state
     });
   } catch (error) {
@@ -241,8 +227,7 @@ const updateBalance = async (req, res) => {
 
 const depositByCard = async (req, res) => {
   try {
-    const { amount, accountType, gateway = "mock" } = req.body;
-    const normalizedAccountType = getNormalizedAccountType(accountType);
+    const { amount, gateway = "stripe" } = req.body;
 
     if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({
@@ -251,14 +236,7 @@ const depositByCard = async (req, res) => {
       });
     }
 
-    if (normalizedAccountType !== "real") {
-      return res.status(400).json({
-        success: false,
-        error: "Card deposits are available only for real account",
-      });
-    }
-
-    if (!["mock", "stripe", "razorpay"].includes(gateway)) {
+    if (!["stripe", "razorpay"].includes(gateway)) {
       return res.status(400).json({
         success: false,
         error: "Unsupported payment gateway",
@@ -278,30 +256,23 @@ const depositByCard = async (req, res) => {
     }
 
     const wallet = await ensureWalletDocument(user._id, user.balance);
-    const balanceField =
-      normalizedAccountType === "demo" ? "demoUsdBalance" : "realUsdBalance";
-
-    wallet[balanceField] = Number(wallet[balanceField] || 0) + amount;
+    wallet.realUsdBalance = Number(wallet.realUsdBalance || 0) + amount;
     wallet.usdBalance = wallet.realUsdBalance;
     wallet.lastUpdated = new Date();
     await wallet.save();
 
-    if (normalizedAccountType === "real") {
-      user.balance = wallet.realUsdBalance;
-      await user.save();
-    }
+    user.balance = wallet.realUsdBalance;
+    await user.save();
 
     return res.json({
       success: true,
-      message: `$${amount.toFixed(2)} added to ${normalizedAccountType} account`,
+      message: `$${amount.toFixed(2)} added to real account`,
       gateway,
       wallet: {
         usdBalance: Number(wallet.realUsdBalance || 0),
         realUsdBalance: Number(wallet.realUsdBalance || 0),
-        demoUsdBalance: Number(wallet.demoUsdBalance || 0),
         tokenBalance: Number(wallet.tokenBalance || 0),
       },
-      accountType: normalizedAccountType,
     });
   } catch (error) {
     console.error("Card Deposit Error:", error.message);
