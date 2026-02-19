@@ -7,36 +7,36 @@ const validateRegister = (req, res, next) => {
 
   // Username validation
   if (!username) {
-    errors.push('Username zaroori hai');
+    errors.push("Username is required");
   } else if (username.length < 3) {
-    errors.push('Username kam se kam 3 characters ka hona chahiye');
+    errors.push("Username must be at least 3 characters long");
   } else if (username.length > 30) {
-    errors.push('Username 30 characters se zyada nahi ho sakta');
+    errors.push("Username cannot exceed 30 characters");
   } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    errors.push('Username mein sirf letters, numbers aur underscore ho sakte hain');
+    errors.push("Username can only contain letters, numbers, and underscores");
   }
 
   // Email validation
   if (!email) {
-    errors.push('Email zaroori hai');
+    errors.push("Email is required");
   } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-    errors.push('Valid email address enter karein');
+    errors.push("Please enter a valid email address");
   }
 
   // Password validation
   if (!password) {
-    errors.push('Password zaroori hai');
+    errors.push("Password is required");
   } else if (password.length < 6) {
-    errors.push('Password kam se kam 6 characters ka hona chahiye');
+    errors.push("Password must be at least 6 characters long");
   } else if (password.length > 100) {
-    errors.push('Password bahut lamba hai');
+    errors.push("Password is too long");
   }
 
-  // Agar errors hain to response bhejo
+  // Return response if validation errors exist
   if (errors.length > 0) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: errors[0],
-      allErrors: errors 
+      allErrors: errors,
     });
   }
 
@@ -50,21 +50,21 @@ const validateLogin = (req, res, next) => {
 
   // Email validation
   if (!email) {
-    errors.push('Email zaroori hai');
+    errors.push("Email is required");
   } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-    errors.push('Valid email address enter karein');
+    errors.push("Please enter a valid email address");
   }
 
   // Password validation
   if (!password) {
-    errors.push('Password zaroori hai');
+    errors.push("Password is required");
   }
 
-  // Agar errors hain to response bhejo
+  // Return response if validation errors exist
   if (errors.length > 0) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: errors[0],
-      allErrors: errors 
+      allErrors: errors,
     });
   }
 
@@ -73,24 +73,76 @@ const validateLogin = (req, res, next) => {
 
 // Balance update validation
 const validateBalance = (req, res, next) => {
-  const { amount } = req.body;
+  const { amount, accountType } = req.body;
 
   if (amount === undefined || amount === null) {
-    return res.status(400).json({ 
-      error: 'Amount zaroori hai' 
+    return res.status(400).json({
+      error: "Amount is required",
     });
   }
 
-  if (typeof amount !== 'number') {
-    return res.status(400).json({ 
-      error: 'Amount number hona chahiye' 
+  if (typeof amount !== "number") {
+    return res.status(400).json({
+      error: "Amount must be a number",
     });
   }
 
   if (amount < 0) {
-    return res.status(400).json({ 
-      error: 'Amount negative nahi ho sakta' 
+    return res.status(400).json({
+      error: "Amount cannot be negative",
     });
+  }
+
+  if (accountType && !["real", "demo"].includes(accountType)) {
+    return res.status(400).json({
+      error: "Account type must be either real or demo",
+    });
+  }
+
+  next();
+};
+
+const validateCardDeposit = (req, res, next) => {
+  const { amount, accountType, gateway, cardHolder, cardNumber, expiry, cvv } =
+    req.body;
+
+  if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: "Amount must be greater than 0" });
+  }
+
+  if (accountType && !["real", "demo"].includes(accountType)) {
+    return res.status(400).json({
+      error: "Account type must be either real or demo",
+    });
+  }
+
+  if ((accountType || "real") !== "real") {
+    return res.status(400).json({
+      error: "Card deposits are allowed only for real account",
+    });
+  }
+
+  if (!gateway || !["mock", "stripe", "razorpay"].includes(gateway)) {
+    return res.status(400).json({
+      error: "Gateway must be one of: mock, stripe, razorpay",
+    });
+  }
+
+  if (!cardHolder || cardHolder.trim().length < 3) {
+    return res.status(400).json({ error: "Card holder name is required" });
+  }
+
+  const normalizedCard = String(cardNumber || "").replace(/\s|-/g, "");
+  if (!/^\d{13,19}$/.test(normalizedCard)) {
+    return res.status(400).json({ error: "Invalid card number" });
+  }
+
+  if (!/^(0[1-9]|1[0-2])\/(\d{2})$/.test(String(expiry || ""))) {
+    return res.status(400).json({ error: "Expiry must be in MM/YY format" });
+  }
+
+  if (!/^\d{3,4}$/.test(String(cvv || ""))) {
+    return res.status(400).json({ error: "Invalid CVV" });
   }
 
   next();
@@ -99,5 +151,6 @@ const validateBalance = (req, res, next) => {
 module.exports = {
   validateRegister,
   validateLogin,
-  validateBalance
+  validateBalance,
+  validateCardDeposit,
 };

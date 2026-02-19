@@ -10,7 +10,17 @@ const walletSchema = new mongoose.Schema(
     },
     usdBalance: {
       type: Number,
-      default: 0,
+      default: 1000,
+      min: 0
+    },
+    realUsdBalance: {
+      type: Number,
+      default: 1000,
+      min: 0
+    },
+    demoUsdBalance: {
+      type: Number,
+      default: 1000,
       min: 0
     },
     tokenBalance: {
