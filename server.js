@@ -74,6 +74,7 @@ const authRoutes = require("./routes/authRoutes");
 const headerRoutes = require("./routes/headerRoutes");
 const tradeRoutes = require("./routes/tradeRoutes");
 const priceRoutes = require("./routes/priceRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 const priceWS = require("./websocket/priceWebSocket");
 
 // Health check
@@ -86,6 +87,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/header", headerRoutes);
 app.use("/api/trade", tradeRoutes);
 app.use("/api/prices", priceRoutes);
+app.use("/api/payment", paymentRoutes);
 
 // ================= SERVER =================
 const server = http.createServer(app);
