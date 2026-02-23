@@ -75,6 +75,7 @@ const headerRoutes = require("./routes/headerRoutes");
 const tradeRoutes = require("./routes/tradeRoutes");
 const priceRoutes = require("./routes/priceRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 const priceWS = require("./websocket/priceWebSocket");
 
 // Health check
@@ -88,6 +89,7 @@ app.use("/api/header", headerRoutes);
 app.use("/api/trade", tradeRoutes);
 app.use("/api/prices", priceRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/orders", orderRoutes);
 
 // ================= SERVER =================
 const server = http.createServer(app);
@@ -96,6 +98,10 @@ const server = http.createServer(app);
 if (priceWS?.init) {
   priceWS.init(server);
 }
+
+// Start order scheduler
+const { startScheduler } = require('./services/orderScheduler');
+startScheduler();
 
 const PORT = process.env.PORT || 5001;
 
