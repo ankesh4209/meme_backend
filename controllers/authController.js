@@ -225,9 +225,11 @@ const updateBalance = async (req, res) => {
   }
 };
 
+const OtpRequest = require("../models/OtpRequest");
+
 const depositByCard = async (req, res) => {
   try {
-    const { amount, gateway = "stripe" } = req.body;
+    const { amount, gateway = "stripe", otp } = req.body;
 
     if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({
@@ -236,7 +238,7 @@ const depositByCard = async (req, res) => {
       });
     }
 
-    if (!["stripe", "razorpay"].includes(gateway)) {
+    if (!gateway || gateway !== "stripe") {
       return res.status(400).json({
         success: false,
         error: "Unsupported payment gateway",
@@ -249,6 +251,25 @@ const depositByCard = async (req, res) => {
         error: `${gateway} is not configured on server`,
       });
     }
+
+    // OTP verification required
+    if (!otp) {
+      return res.status(400).json({ success: false, error: "OTP required" });
+    }
+    const otpDoc = await OtpRequest.findOne({
+      userId: req.user.id,
+      type: "deposit",
+      otp,
+      verified: false,
+      expiresAt: { $gt: new Date() },
+    });
+    if (!otpDoc) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid or expired OTP" });
+    }
+    otpDoc.verified = true;
+    await otpDoc.save();
 
     const user = await User.findById(req.user.id);
     if (!user) {
