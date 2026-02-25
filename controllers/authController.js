@@ -227,6 +227,12 @@ const updateBalance = async (req, res) => {
 
 const OtpRequest = require("../models/OtpRequest");
 
+const crypto = require("crypto");
+const sendOtpToUser = async (user, otp) => {
+  // TODO: Integrate with SMS/email provider
+  console.log(`OTP for ${user.email || user.phone}: ${otp}`);
+};
+
 const depositByCard = async (req, res) => {
   try {
     const { amount, gateway = "stripe", otp } = req.body;
@@ -252,10 +258,34 @@ const depositByCard = async (req, res) => {
       });
     }
 
-    // OTP verification required
-    if (!otp) {
-      return res.status(400).json({ success: false, error: "OTP required" });
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
     }
+
+    // If OTP not provided, generate and send OTP, prompt for OTP input
+    if (!otp) {
+      const generatedOtp = Math.floor(
+        100000 + Math.random() * 900000,
+      ).toString();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min expiry
+      await OtpRequest.create({
+        userId: req.user.id,
+        type: "deposit",
+        otp: generatedOtp,
+        expiresAt,
+      });
+      await sendOtpToUser(user, generatedOtp);
+      return res
+        .status(200)
+        .json({
+          success: false,
+          error: "OTP_SENT",
+          message: "OTP sent to your registered mobile/email.",
+        });
+    }
+
+    // OTP verification required
     const otpDoc = await OtpRequest.findOne({
       userId: req.user.id,
       type: "deposit",
@@ -270,11 +300,6 @@ const depositByCard = async (req, res) => {
     }
     otpDoc.verified = true;
     await otpDoc.save();
-
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ success: false, error: "User not found" });
-    }
 
     const wallet = await ensureWalletDocument(user._id, user.balance);
     wallet.realUsdBalance = Number(wallet.realUsdBalance || 0) + amount;
