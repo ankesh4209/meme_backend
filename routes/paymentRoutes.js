@@ -4,6 +4,9 @@ const {
   createPaymentIntent,
   confirmPaymentIntent,
 } = require("../services/stripeService");
+const { processPayment } = require("../controllers/paymentController");
+// Process payment after OTP verification
+router.post("/process", processPayment);
 
 // Create a payment intent
 router.post("/create-intent", async (req, res) => {
