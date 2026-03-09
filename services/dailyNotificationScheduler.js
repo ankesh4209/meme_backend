@@ -9,7 +9,7 @@ cron.schedule("0 18 * * *", async () => {
     const users = await User.find({});
     for (const user of users) {
       await createNotification({
-        user: user._id,
+        userId: user._id,
         title: "Daily Reminder",
         message: "This is your daily notification!",
         createdAt: new Date(),
