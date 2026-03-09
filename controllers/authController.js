@@ -276,13 +276,11 @@ const depositByCard = async (req, res) => {
         expiresAt,
       });
       await sendOtpToUser(user, generatedOtp);
-      return res
-        .status(200)
-        .json({
-          success: false,
-          error: "OTP_SENT",
-          message: "OTP sent to your registered mobile/email.",
-        });
+      return res.status(200).json({
+        success: false,
+        error: "OTP_SENT",
+        message: "OTP sent to your registered mobile/email.",
+      });
     }
 
     // OTP verification required
@@ -308,17 +306,21 @@ const depositByCard = async (req, res) => {
     await wallet.save();
 
     user.balance = wallet.realUsdBalance;
+    // Add 10% bonus points per deposit
+    const bonus = Math.floor(amount * 0.1);
+    user.bonusPoints = (user.bonusPoints || 0) + bonus;
     await user.save();
 
     return res.json({
       success: true,
-      message: `$${amount.toFixed(2)} added to real account`,
+      message: `$${amount.toFixed(2)} added to real account (+${bonus} bonus points)`,
       gateway,
       wallet: {
         usdBalance: Number(wallet.realUsdBalance || 0),
         realUsdBalance: Number(wallet.realUsdBalance || 0),
         tokenBalance: Number(wallet.tokenBalance || 0),
       },
+      bonusPoints: user.bonusPoints,
     });
   } catch (error) {
     console.error("Card Deposit Error:", error.message);

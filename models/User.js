@@ -30,6 +30,11 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: [0, "Balance cannot be negative"],
     },
+    bonusPoints: {
+      type: Number,
+      default: 0,
+      min: [0, "Bonus points cannot be negative"],
+    },
   },
   {
     timestamps: true,

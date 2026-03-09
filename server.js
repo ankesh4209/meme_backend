@@ -113,6 +113,9 @@ if (priceWS?.init) {
 const { startScheduler } = require("./services/orderScheduler");
 startScheduler();
 
+// Start daily notification scheduler
+require("./services/dailyNotificationScheduler");
+
 const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
